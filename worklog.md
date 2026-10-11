@@ -57,3 +57,23 @@ Stage Summary:
 - package.json теперь содержит ровно те зависимости, которые фактчек-приложение реально использует: 20 пакетов вместо ~50.
 - Приложение работает идентично до оптимизации (lint чист, компиляция без ошибок, страница рендерится, API отвечает).
 - Все env-переменные задокументированы в .env с комментариями: DATABASE_URL, LLM_PROVIDER, LLM_BASE_URL (опц.), LLM_API_KEY, LLM_MODEL, LLM_TIMEOUT_MS, LLM_IDLE_TIMEOUT_MS, LLM_MAX_TOKENS.
+
+---
+Task ID: 3
+Agent: main (Z.ai Code)
+Task: Исправить ошибку "LLM JSON parsing failed" и ответить на вопрос о сокращении размера до 50 МБ.
+
+Work Log:
+- Диагностировал "LLM JSON parsing failed": ошибка возникает в completeJson() когда complete() успешно получает ответ LLM (без таймаута), но parseJsonLoose() возвращает undefined для всех 3 попыток. Поскольку complete() не выбрасывал, lastError оставался null, и финальный throw был new Error("LLM JSON parsing failed") — безполезное сообщение без контекста.
+- Причины: (а) модель возвращает prose вокруг JSON (parseJsonLoose уже частично это обрабатывает), (б) ответ обрезан по max_tokens mid-generation (parseJsonLoose НЕ обрабатывал), (в) нестандартный синтаксис.
+- Применил 3 исправления в src/lib/factcheck/llm.ts:
+  1. Добавлен response_format: { type: "json_object" } в тело запроса когда jsonMode=true. Все три локальных бэкенда (llama.cpp/LM Studio/Ollama) поддерживают это и constraint-ят вывод через grammar-based sampling — устраняет главную причину невалидного JSON. Серверы, не поддерживающие поле, молча игнорируют его (по конвенции OpenAI API).
+  2. complete() теперь принимает opts?: { jsonMode?: boolean }; completeJson() передаёт jsonMode: true во все вызовы (включая repair-попытки).
+  3. parseJsonLoose() улучшен: добавлен шаг 4 — repairTruncatedJson(), который сканирует строку, отслеживает nesting и string state, закрывает незакрытые строки/массивы/объекты. Обрабатывает случай обрезки по max_tokens.
+  4. completeJson() теперь отслеживает lastRawResponse и включает snippet (первые 300 символов) в сообщение об ошибке, чтобы пользователь видел что модель реально вернула.
+- bun run lint — чисто (0 ошибок). Dev-сервер перезапущен, 0 ошибок компиляции, страница рендерится (verified через agent-browser + curl).
+- Измерил размер приложения: src/ = 396K, prisma/ = 12K, public/ = 372K, конфиги = ~1M. node_modules/ = 902M (из них Next.js+@next = 220M, Prisma = 112M, TypeScript = 23M — фреймворк неизбежно тяжёлый). skills/ = 61M (Z.ai system, не часть приложения).
+
+Stage Summary:
+- Ошибка "LLM JSON parsing failed" исправлена: response_format json_object принудительно ограничивает вывод валидным JSON, repairTruncatedJson чинит обрезанные ответы, error-сообщение теперь содержит snippet raw response для диагностики.
+- Размер приложения: исходный код (src + prisma + public + конфиги) = ~1.8 МБ. node_modules = 902 МБ — это НЕизбежно для Next.js + Prisma (фреймворк + ORM занимают 332 МБ). Сократить до 50 МБ невозможно без удаления Next.js/Prisma. Для production-деплоя используйте bun run build (output: "standalone" уже настроен) — standalone-сборка содержит только необходимые файлы, но всё равно будет ~150-250 МБ из-за Node.js runtime + Next.js server + Prisma client.

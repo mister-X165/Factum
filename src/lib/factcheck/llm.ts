@@ -117,8 +117,18 @@ export class OpenAiCompatibleProvider implements LLMProvider {
   /**
    * Run a chat completion with streaming + dual timeout (idle / overall).
    * Returns the full concatenated assistant text once the stream ends.
+   *
+   * When `jsonMode` is true, adds `response_format: { type: "json_object" }`
+   * to the request body. Supported by llama.cpp / LM Studio / Ollama — it
+   * constrains the output to valid JSON via grammar-based sampling, which
+   * eliminates the #1 cause of "LLM JSON parsing failed" (prose-wrapped or
+   * structurally invalid JSON from smaller models). Servers that don't
+   * recognise the field silently ignore it (per OpenAI API convention).
    */
-  async complete(messages: ChatMessage[]): Promise<string> {
+  async complete(
+    messages: ChatMessage[],
+    opts?: { jsonMode?: boolean }
+  ): Promise<string> {
     const controller = new AbortController();
     let idleTimer: ReturnType<typeof setTimeout> | null = null;
     let overallTimer: ReturnType<typeof setTimeout> | null = null;
@@ -146,6 +156,11 @@ export class OpenAiCompatibleProvider implements LLMProvider {
       max_tokens: this.maxTokens,
     };
     if (this.model) body.model = this.model;
+    // Constrain output to valid JSON — supported by all three local backends.
+    // Eliminates prose-wrapped / structurally-invalid JSON from small models.
+    if (opts?.jsonMode) {
+      body.response_format = { type: "json_object" };
+    }
 
     try {
       const res = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -238,26 +253,36 @@ export class OpenAiCompatibleProvider implements LLMProvider {
   ): Promise<T> {
     const retries = opts?.retries ?? FACTCHECK_CONFIG.llm.retries;
     let lastError: unknown = null;
+    /** Track the last raw response so we can include a snippet in the error. */
+    let lastRawResponse = "";
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const raw = await this.complete([
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ]);
-        const parsed = parseJsonLoose<T>(raw);
-        if (parsed !== undefined) return parsed;
-        // repair attempt
-        if (attempt < retries) {
-          const repaired = await this.complete([
+        const raw = await this.complete(
+          [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
-            { role: "assistant", content: raw },
-            {
-              role: "user",
-              content:
-                "Твой предыдущий ответ не является валидным JSON. Верни ТОЛЬКО валидный JSON той же структуры, без markdown и пояснений.",
-            },
-          ]);
+          ],
+          { jsonMode: true }
+        );
+        lastRawResponse = raw;
+        const parsed = parseJsonLoose<T>(raw);
+        if (parsed !== undefined) return parsed;
+        // repair attempt — also use jsonMode so the model is constrained
+        if (attempt < retries) {
+          const repaired = await this.complete(
+            [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+              { role: "assistant", content: raw },
+              {
+                role: "user",
+                content:
+                  "Твой предыдущий ответ не является валидным JSON. Верни ТОЛЬКО валидный JSON той же структуры, без markdown и пояснений.",
+              },
+            ],
+            { jsonMode: true }
+          );
+          lastRawResponse = repaired;
           const reparsed = parseJsonLoose<T>(repaired);
           if (reparsed !== undefined) return reparsed;
         }
@@ -272,9 +297,20 @@ export class OpenAiCompatibleProvider implements LLMProvider {
         if (attempt < retries) await sleep(500 * attempt);
       }
     }
-    throw lastError instanceof Error
-      ? lastError
-      : new Error("LLM JSON parsing failed");
+    // If we have a real error (timeout/connection/HTTP), throw it.
+    if (lastError instanceof Error) throw lastError;
+    // Otherwise the LLM responded but we couldn't parse JSON — include a
+    // snippet of the last raw response so the user can diagnose what the
+    // model actually returned.
+    const snippet = lastRawResponse
+      ? lastRawResponse.slice(0, 300).replace(/\s+/g, " ").trim()
+      : "(пустой ответ)";
+    throw new Error(
+      `LLM вернула ответ, который не удалось разобрать как JSON после ${retries} попыток. ` +
+        `Возможно модель слишком слабая для структурированного вывода, либо ответ обрезан по max_tokens. ` +
+        `Начало последнего ответа: "${snippet}". ` +
+        `Попробуйте увеличить LLM_MAX_TOKENS, использовать более мощную модель, или проверить, что промпт требует JSON.`
+    );
   }
 }
 
@@ -338,16 +374,69 @@ export async function llmHealth(): Promise<{
   }
 }
 
+/**
+ * Repair truncated JSON by closing unclosed strings, arrays, and objects.
+ *
+ * When a local model hits `max_tokens` mid-generation, the output is cut off
+ * mid-string or mid-object. This function scans the string tracking nesting
+ * depth and string state, then appends the necessary closing characters.
+ */
+function repairTruncatedJson(s: string): string {
+  const stack: string[] = [];
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (inString) {
+      if (ch === "\\") {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === "{" || ch === "[") {
+      stack.push(ch);
+    } else if (ch === "}" || ch === "]") {
+      stack.pop();
+    }
+  }
+
+  let result = s;
+  // If we're inside an unclosed string, close it.
+  if (inString) {
+    result += '"';
+  }
+  // Remove a trailing comma if present (would be invalid after closing).
+  result = result.replace(/,\s*$/, "");
+  // Close all unclosed braces/brackets in reverse order.
+  while (stack.length > 0) {
+    const opener = stack.pop();
+    result += opener === "{" ? "}" : "]";
+  }
+  return result;
+}
+
 /** Parse JSON even if the model wrapped it in markdown / extra prose. */
 export function parseJsonLoose<T>(raw: string): T | undefined {
   if (!raw) return undefined;
   const trimmed = raw.trim();
+
+  // 1. Direct parse.
   try {
     return JSON.parse(trimmed) as T;
   } catch {
     /* keep trying */
   }
-  // strip ```json ... ``` fences
+
+  // 2. Strip ```json ... ``` fences.
   const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fence) {
     try {
@@ -356,7 +445,8 @@ export function parseJsonLoose<T>(raw: string): T | undefined {
       /* keep trying */
     }
   }
-  // grab the outermost {...} or [...]
+
+  // 3. Grab the outermost {...} or [...] and try to parse.
   const startBrace = trimmed.search(/[[{]/);
   if (startBrace === -1) return undefined;
   const open = trimmed[startBrace];
@@ -367,9 +457,21 @@ export function parseJsonLoose<T>(raw: string): T | undefined {
     try {
       return JSON.parse(slice) as T;
     } catch {
-      return undefined;
+      /* keep trying — maybe truncated, try repair below */
     }
   }
+
+  // 4. Truncation repair: the response may be cut off mid-generation by
+  //    max_tokens. Extract from the first brace/bracket to the end, close
+  //    any unclosed structures, and try to parse.
+  const fromFirstBrace = trimmed.slice(startBrace);
+  const repaired = repairTruncatedJson(fromFirstBrace);
+  try {
+    return JSON.parse(repaired) as T;
+  } catch {
+    /* give up */
+  }
+
   return undefined;
 }
 
