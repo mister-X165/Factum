@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma schema for the Grafix medical fact-checker.
+// Stores the audit trail of every analysis (project → document →
+// claims → evidence → sources → verdicts → report).
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +11,144 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// One fact-checking run = one project.
+model Project {
+  id            String   @id @default(cuid())
+  url           String
+  mode          String // CONTROLLED | RESEARCH
+  modelInfo     String? // backend / model name
+  status        String // running | completed | failed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  document      Document?
+  claims        Claim[]
+  sources       Source[]
+  evidences     Evidence[]
+  searchQueries SearchQuery[]
+  verdicts      Verdict[]
+  auditEvents   AuditEvent[]
+  report        Report?
 }
 
-model Post {
+/// Extracted text + metadata from the analysed URL.
+model Document {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url         String
+  title        String?
+  author      String?
+  publishedAt String?
+  retrievedAt DateTime @default(now())
+  contentHash String?
+  text        String
+  excerpt     String?
+  contentType  String? // html | pdf | text
+}
+
+model Claim {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  claimId         String // logical id, e.g. claim_001
+  text            String
+  normalizedText  String?
+  claimType       String
+  importance      Float
+  checkRequired   Boolean @default(true)
+  context         String?
+  createdAt       DateTime @default(now())
+  evidences       Evidence[]
+  verdict         Verdict?
+}
+
+model Source {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceId        String // logical id, e.g. source_001
+  url             String
+  title           String?
+  author          String?
+  organization    String?
+  publicationDate String?
+  retrievedAt     DateTime @default(now())
+  sourceType      String // SYSTEMATIC_REVIEW | RCT | GUIDELINE | MEDIA | BLOG ...
+  evidenceLevel   Int // tier 1..8
+  authorityScore  Float
+  methodologyScore Float
+  relevanceScore  Float
+  recencyScore    Float
+  independenceScore Float
+  transparencyScore Float
+  overallScore    Float
+  excerpt         String?
+  trusted         Boolean @default(false)
+  retrievalError  String?
+  evidences       Evidence[]
+}
+
+model Evidence {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  claimId     String
+  claim       Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  sourceId    String
+  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  evidenceId  String // logical id
+  text        String
+  evidenceType String // PRIMARY | HIGH_LEVEL | SUPPORTING | CONTRADICTING ...
+  direction   String // SUPPORTS | CONTRADICTS | NEUTRAL
+  relevance   Float
+  strength    Float
+  createdAt   DateTime @default(now())
+}
+
+model SearchQuery {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  query     String
+  purpose   String // supporting | contradicting | primary | guideline ...
+  claimRef  String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+model Verdict {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  claimId       String   @unique
+  claim         Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  label         String // VERIFIED | LIKELY_TRUE | PARTIALLY_TRUE | MISLEADING | LIKELY_FALSE | FALSE | INSUFFICIENT_EVIDENCE
+  confidence    Float
+  explanation   String
+  supportingEvidenceIds    String // JSON array
+  contradictingEvidenceIds String // JSON array
+  sourceIds     String // JSON array
+  createdAt     DateTime @default(now())
+}
+
+model Report {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  overallVerdict    String
+  overallConfidence Float
+  summary           String
+  methodology       String
+  limitations       String
+  generatedAt       DateTime @default(now())
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage     String
+  level     String // DEBUG | INFO | WARNING | ERROR | CRITICAL
+  message   String
+  detail    String?
+  createdAt DateTime @default(now())
 }

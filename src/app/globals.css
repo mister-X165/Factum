@@ -3,10 +3,28 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ===== Фактум brand fonts ===== */
+@font-face {
+  font-family: "RF Dewi Expanded";
+  src: url("/brand/fonts/RFDewiExpanded-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Resist Sans Text";
+  src: url("/brand/fonts/ResistSansText-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Resist Sans Text", "Segoe UI", sans-serif;
+  --font-display: "RF Dewi Expanded", "Arial Narrow", sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -44,72 +62,51 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.25rem;
+  /* Фактум dark brand (always dark) */
+  --ink: #f4f6f7;
+  --ink-dim: #dadee1;
+  --muted-ink: #8a9aa6;
+  --slate-ink: #4e6676;
+  --bg0: #07090b;
+
+  --background: #07090b;
+  --foreground: #f4f6f7;
+  --card: rgba(14, 18, 22, 0.72);
+  --card-foreground: #f4f6f7;
+  --popover: #141a20;
+  --popover-foreground: #f4f6f7;
+  --primary: #8a9aa6;
+  --primary-foreground: #07090b;
+  --secondary: rgba(28, 36, 44, 0.88);
+  --secondary-foreground: #f4f6f7;
+  --muted: rgba(28, 36, 44, 0.6);
+  --muted-foreground: #8a9aa6;
+  --accent: rgba(78, 102, 118, 0.35);
+  --accent-foreground: #f4f6f7;
+  --destructive: #ff5c8a;
+  --border: rgba(218, 222, 225, 0.18);
+  --input: rgba(218, 222, 225, 0.18);
+  --ring: #4e6676;
+  /* verdict / evidence accent colors */
+  --chart-1: #2ec4b6; /* supports / teal */
+  --chart-2: #ff5c8a; /* contradicts / rose */
+  --chart-3: #e9c46a; /* partial / amber */
+  --chart-4: #4e6676; /* slate */
+  --chart-5: #a78bfa; /* bridge / purple */
+  --sidebar: rgba(14, 18, 22, 0.72);
+  --sidebar-foreground: #f4f6f7;
+  --sidebar-primary: #8a9aa6;
+  --sidebar-primary-foreground: #07090b;
+  --sidebar-accent: rgba(78, 102, 118, 0.35);
+  --sidebar-accent-foreground: #f4f6f7;
+  --sidebar-border: rgba(218, 222, 225, 0.18);
+  --sidebar-ring: #4e6676;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #07090b;
+  --foreground: #f4f6f7;
 }
 
 @layer base {
@@ -118,5 +115,110 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
   }
 }
+
+/* ===== Фактум key visual background ===== */
+.gx-kv {
+  position: fixed;
+  inset: 0;
+  background: url("/brand/key-visual.png") center 28% / cover no-repeat;
+  transform: scale(1.04);
+  animation: gx-kv-drift 28s ease-in-out infinite alternate;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.gx-kv-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(7, 9, 11, 0.35) 0%, rgba(7, 9, 11, 0.55) 42%, rgba(7, 9, 11, 0.92) 78%, #07090b 100%),
+    linear-gradient(90deg, rgba(7, 9, 11, 0.55) 0%, transparent 40%, rgba(7, 9, 11, 0.35) 100%);
+}
+
+@keyframes gx-kv-drift {
+  from { transform: scale(1.04) translate3d(0, 0, 0); }
+  to { transform: scale(1.08) translate3d(-1.5%, 1%, 0); }
+}
+
+@keyframes gx-rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gx-rise { animation: gx-rise 1.1s ease-out both; }
+.gx-rise-delay { animation: gx-rise 1.2s ease-out 0.15s both; }
+
+@keyframes gx-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gx-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid rgba(242, 255, 248, 0.25);
+  border-top-color: #f2fff8;
+  border-radius: 50%;
+  animation: gx-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Фактум panel — frosted dark card */
+.gx-panel {
+  background: rgba(14, 18, 22, 0.72);
+  border: 1px solid rgba(218, 222, 225, 0.18);
+  border-radius: 2px;
+  backdrop-filter: blur(14px);
+}
+
+.gx-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* primary action button gradient */
+.gx-btn-primary {
+  background: linear-gradient(135deg, #1a2228 0%, #4e6676 55%, #8a9aa6 130%);
+  border-color: rgba(218, 222, 225, 0.35);
+}
+.gx-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+/* verdict colors */
+.gx-v-verified { color: #2ec4b6; }
+.gx-v-likely-true { color: #7fd1c4; }
+.gx-v-partially-true { color: #e9c46a; }
+.gx-v-misleading { color: #f4a261; }
+.gx-v-likely-false { color: #ff8aad; }
+.gx-v-false { color: #ff5c8a; }
+.gx-v-insufficient { color: #8a9aa6; }
+
+.gx-bg-v-verified { background: rgba(46, 196, 182, 0.14); border-color: rgba(46, 196, 182, 0.4); }
+.gx-bg-v-likely-true { background: rgba(127, 209, 196, 0.12); border-color: rgba(127, 209, 196, 0.35); }
+.gx-bg-v-partially-true { background: rgba(233, 196, 106, 0.12); border-color: rgba(233, 196, 106, 0.35); }
+.gx-bg-v-misleading { background: rgba(244, 162, 97, 0.14); border-color: rgba(244, 162, 97, 0.4); }
+.gx-bg-v-likely-false { background: rgba(255, 138, 173, 0.12); border-color: rgba(255, 138, 173, 0.35); }
+.gx-bg-v-false { background: rgba(255, 92, 138, 0.14); border-color: rgba(255, 92, 138, 0.4); }
+.gx-bg-v-insufficient { background: rgba(138, 154, 166, 0.12); border-color: rgba(138, 154, 166, 0.35); }
+
+/* custom scrollbar for long lists */
+.gx-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(138, 154, 166, 0.5) transparent;
+}
+.gx-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.gx-scroll::-webkit-scrollbar-track { background: transparent; }
+.gx-scroll::-webkit-scrollbar-thumb {
+  background: rgba(138, 154, 166, 0.45);
+  border-radius: 4px;
+}
+.gx-scroll::-webkit-scrollbar-thumb:hover { background: rgba(138, 154, 166, 0.7); }
