@@ -52,3 +52,11 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Локальная база данных Prisma
+/prisma/db/
+/prisma/*.db
+/prisma/*.db-journal
+
+# Временные тяжелые архивы и загрузки
+/upload/*.tar

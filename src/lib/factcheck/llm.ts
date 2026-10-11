@@ -158,8 +158,14 @@ export class OpenAiCompatibleProvider implements LLMProvider {
     if (this.model) body.model = this.model;
     // Constrain output to valid JSON — supported by all three local backends.
     // Eliminates prose-wrapped / structurally-invalid JSON from small models.
-    if (opts?.jsonMode) {
-      body.response_format = { type: "json_object" };
+       if (opts?.jsonMode) {
+      body.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: "json_output",
+          schema: { type: "object" } // Универсальная схема, принимающая любой JSON
+        }
+      };
     }
 
     try {
