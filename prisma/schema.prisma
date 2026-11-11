@@ -1,0 +1,205 @@
+// Prisma schema for the Factum fact-checker.
+// Stores the audit trail of every analysis (project → document →
+// claims → evidence → sources → verdicts → report).
+//
+// Auth models: User (login/password, role admin|user, banned flag) and
+// Session (signed session token with expiry). Each Project belongs to a
+// User so admins can view per-user statistics and delete a user's history.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A registered user. role = "admin" can manage users; role = "user" sees
+/// only their own checks. banned = true blocks API access (the signed token
+/// may still be valid for up to its expiry, but API routes re-check the DB).
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  /// scrypt hash: "saltHex:hashHex"
+  passwordHash String
+  role         String    @default("user") // "admin" | "user"
+  banned       Boolean   @default(false)
+  bannedReason String?
+  createdAt    DateTime  @default(now())
+  projects     Project[]
+}
+
+/// One fact-checking run = one project.
+model Project {
+  id            String   @id @default(cuid())
+  url           String
+  mode          String // CONTROLLED | RESEARCH
+  modelInfo     String? // backend / model name
+  status        String // running | completed | failed
+  /// Admin flag: project is shown at the top of history lists.
+  showcase      Boolean  @default(false)
+  /// How many times verdicts were recalculated (e.g. after a user source).
+  revision      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  /// Owner of this project. Null for projects created before the User system
+  /// was introduced — only admins can see those.
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document      Document?
+  claims        Claim[]
+  sources       Source[]
+  evidences     Evidence[]
+  searchQueries SearchQuery[]
+  verdicts      Verdict[]
+  verdictVersions VerdictVersion[]
+  auditEvents   AuditEvent[]
+  report        Report?
+}
+
+/// Extracted text + metadata from the analysed URL.
+model Document {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url         String
+  title        String?
+  author      String?
+  publishedAt String?
+  retrievedAt DateTime @default(now())
+  contentHash String?
+  text        String
+  excerpt     String?
+  contentType  String? // html | pdf | text
+}
+
+model Claim {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  claimId         String // logical id, e.g. claim_001
+  text            String
+  normalizedText  String?
+  claimType       String
+  importance      Float
+  checkRequired   Boolean @default(true)
+  context         String?
+  createdAt       DateTime @default(now())
+  evidences       Evidence[]
+  verdict         Verdict?
+}
+
+model Source {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceId        String // logical id, e.g. source_001
+  url             String
+  title           String?
+  author          String?
+  organization    String?
+  publicationDate String?
+  retrievedAt     DateTime @default(now())
+  sourceType      String // SYSTEMATIC_REVIEW | RCT | GUIDELINE | MEDIA | BLOG ...
+  evidenceLevel   Int // tier 1..8
+  authorityScore  Float
+  methodologyScore Float
+  relevanceScore  Float
+  recencyScore    Float
+  independenceScore Float
+  transparencyScore Float
+  overallScore    Float
+  excerpt         String?
+  trusted         Boolean @default(false)
+  /// SYSTEM — found by the research engine; USER — submitted by the user.
+  submittedBy     String  @default("SYSTEM")
+  retrievalError  String?
+  evidences       Evidence[]
+}
+
+model Evidence {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  claimId     String
+  claim       Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  sourceId    String
+  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  evidenceId  String // logical id
+  text        String
+  evidenceType String // PRIMARY | HIGH_LEVEL | SUPPORTING | CONTRADICTING ...
+  direction   String // SUPPORTS | CONTRADICTS | NEUTRAL
+  relevance   Float
+  strength    Float
+  createdAt   DateTime @default(now())
+}
+
+model SearchQuery {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  query     String
+  purpose   String // supporting | contradicting | primary | guideline ...
+  claimRef  String?
+  createdAt DateTime @default(now())
+}
+
+model Verdict {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  claimId       String   @unique
+  claim         Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  label         String // VERIFIED | LIKELY_TRUE | PARTIALLY_TRUE | MISLEADING | LIKELY_FALSE | FALSE | INSUFFICIENT_EVIDENCE
+  confidence    Float
+  explanation   String
+  supportingEvidenceIds    String // JSON array
+  contradictingEvidenceIds String // JSON array
+  sourceIds     String // JSON array
+  createdAt     DateTime @default(now())
+  versions      VerdictVersion[]
+}
+
+/// Version history: every previous verdict state is kept when a verdict is
+/// recalculated (e.g. after the user submits an alternative source).
+model VerdictVersion {
+  id                      String   @id @default(cuid())
+  verdictId               String
+  verdict                 Verdict  @relation(fields: [verdictId], references: [id], onDelete: Cascade)
+  projectId               String
+  project                 Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version                 Int // 1 = initial verdict, 2 = first recalculation, …
+  label                   String
+  confidence              Float
+  explanation             String
+  supportingEvidenceIds    String // JSON array
+  contradictingEvidenceIds String // JSON array
+  sourceIds               String // JSON array
+  /// Why the verdict was recalculated (shown in the version timeline).
+  changeReason            String
+  createdAt               DateTime @default(now())
+}
+
+model Report {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  overallVerdict    String
+  overallConfidence Float
+  summary           String
+  methodology       String
+  limitations       String
+  generatedAt       DateTime @default(now())
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage     String
+  level     String // DEBUG | INFO | WARNING | ERROR | CRITICAL
+  message   String
+  detail    String?
+  createdAt DateTime @default(now())
+}

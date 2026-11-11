@@ -1,0 +1,60 @@
+# ============================================================================
+# Factum — systemd-юнит для продакшен-сервера.
+#
+# Установка:
+#   1. Разверните приложение в /opt/factum/app (см. deploy/DEPLOY.md, шаг 3).
+#   2. Скопируйте: cp deploy/factum.service /etc/systemd/system/factum.service
+#   3. systemctl daemon-reload && systemctl enable --now factum
+#
+# Файл НЕ содержит секретов — их берёт из EnvironmentFile=/opt/factum/app/.env
+# ============================================================================
+
+[Unit]
+Description=Factum fact-checking service (Next.js standalone)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=factum
+Group=factum
+WorkingDirectory=/opt/factum/app
+# Production-сервер: standalone-сборка Next.js. Переменные окружения — из .env.
+EnvironmentFile=/opt/factum/app/.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node /opt/factum/app/.next/standalone/server.js
+
+# --- Надёжность ---
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+
+# --- Ресурсы (сервер, 2 ГБ достаточно) ---
+MemoryMax=2G
+TasksMax=512
+
+# --- Логи ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=factum
+
+# --- Hardening ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Приложению нужны на запись: каталог БД и каталог standalone (Prisma пишет
+# query-engine-логи рядом с бинарем; SQLite — в db/).
+ReadWritePaths=/opt/factum/app/db /opt/factum/app/.next
+# Сеть нужна для LLM-провайдера и поиска источников (DuckDuckGo/Bing).
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

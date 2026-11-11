@@ -1,0 +1,465 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Brand fonts were removed from the public build because their redistribution
+ * licence could not be confirmed (RF Dewi Expanded is a commercial TypeType
+ * font; Resist Sans Text is a small-studio font). The UI falls back to a
+ * system stack. To restore the brand fonts, see NOTICE.md.
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Segoe UI", "Inter", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.25rem;
+  /* Моноширинный стек для телеметрии/таймингов (fallback для утилиты font-mono). */
+  --font-geist-mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, "Liberation Mono", monospace;
+  /*
+   * Фактум design system — SpaceX/Tesla tool UI.
+   * Shell dark #121418 · workspace cards light #F4F5F7 · accent #2563EB ·
+   * success #10B981 · warning #F59E0B · error #EF4444 · muted #9CA3AF.
+   */
+  --ink: #f4f5f7;
+  --ink-body: #c3c8cf;
+  --muted-ink: #9ca3af;
+  --faint-ink: #566272;
+  --bg0: #121418;
+  --bg-deep: #0b0d10;
+
+  /* text on light cards */
+  --card-ink: #121418;
+  --card-body: #374151;
+  --card-muted: #6b7280;
+  --card-border: #e3e5e9;
+
+  --background: #121418;
+  --foreground: #f4f5f7;
+  --card: #f4f5f7;
+  --card-foreground: #121418;
+  --popover: #171a1f;
+  --popover-foreground: #f4f5f7;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(30, 35, 42, 0.9);
+  --secondary-foreground: #f4f5f7;
+  --muted: rgba(30, 35, 42, 0.6);
+  --muted-foreground: #9ca3af;
+  --accent: rgba(37, 99, 235, 0.28);
+  --accent-foreground: #f4f5f7;
+  --destructive: #ef4444;
+  --border: rgba(195, 200, 207, 0.14);
+  --input: rgba(195, 200, 207, 0.2);
+  --ring: #2563eb;
+  --chart-1: #10b981;
+  --chart-2: #ef4444;
+  --chart-3: #f59e0b;
+  --chart-4: #566272;
+  --chart-5: #60a5fa;
+  --sidebar: #0f1114;
+  --sidebar-foreground: #f4f5f7;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #f4f5f7;
+  --sidebar-accent: rgba(37, 99, 235, 0.28);
+  --sidebar-accent-foreground: #f4f5f7;
+  --sidebar-border: rgba(195, 200, 207, 0.1);
+  --sidebar-ring: #2563eb;
+}
+
+.dark {
+  --background: #121418;
+  --foreground: #f4f5f7;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: rgba(37, 99, 235, 0.4);
+    color: #f4f5f7;
+  }
+}
+
+/* ===== Typography helpers ===== */
+.gx-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* Section label on the dark shell background. */
+.gx-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+/* Section label inside a light workspace card. */
+.gx-label-card {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* ===== Workspace surfaces ===== */
+
+/* Light workspace card (SpaceX/Tesla instrument panel). */
+.gx-card {
+  background: #f4f5f7;
+  border: 1px solid #e3e5e9;
+  border-radius: 4px;
+  box-shadow:
+    0 1px 2px rgba(11, 13, 16, 0.05),
+    0 10px 30px rgba(11, 13, 16, 0.14);
+}
+
+/* Inset white well inside a light card (inputs, nested rows). */
+.gx-well {
+  background: #ffffff;
+  border: 1px solid #e3e5e9;
+  border-radius: 4px;
+}
+
+/* ===== Mission Control ===== */
+
+/* Телеметрия: 4 ячейки с разделителями. */
+.gx-mc-telemetry {
+  border: 1px solid #e3e5e9;
+  border-radius: 4px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.gx-mc-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 14px;
+  border-right: 1px solid #e3e5e9;
+}
+.gx-mc-cell:last-child {
+  border-right: none;
+}
+@media (max-width: 560px) {
+  .gx-mc-telemetry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gx-mc-cell:nth-child(2n) {
+    border-right: none;
+  }
+  .gx-mc-cell:nth-child(-n + 2) {
+    border-bottom: 1px solid #e3e5e9;
+  }
+}
+
+/* Таймлайн фаз 01–09. */
+.gx-mc-timeline {
+  border: 1px solid #e3e5e9;
+  border-radius: 4px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.gx-mc-phase {
+  display: grid;
+  grid-template-columns: 24px 18px minmax(150px, 220px) minmax(0, 1fr) 62px 78px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-left: 2px solid transparent;
+  transition: background-color 0.2s ease;
+}
+.gx-mc-phase + .gx-mc-phase {
+  border-top: 1px solid #edeff2;
+}
+.gx-mc-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c3c8cf;
+}
+.gx-mc-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+}
+.gx-mc-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  border: 1.5px solid #c3c8cf;
+}
+.gx-mc-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  line-height: 1.25;
+}
+.gx-mc-detail {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Fallback-строка активной фазы — курсив, чтобы отличалась от реальной телеметрии. */
+.gx-mc-detail-fallback {
+  font-style: italic;
+  color: #9ca3af;
+}
+.gx-mc-dur {
+  font-size: 12px;
+  color: #121418;
+  text-align: right;
+}
+.gx-mc-tplus {
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: right;
+}
+
+.gx-mc-phase.is-done .gx-mc-label {
+  color: #121418;
+  font-weight: 500;
+}
+.gx-mc-phase.is-active {
+  background: rgba(37, 99, 235, 0.06);
+  border-left-color: #2563eb;
+  position: relative;
+  overflow: hidden;
+}
+.gx-mc-phase.is-active .gx-mc-label {
+  color: #2563eb;
+}
+.gx-mc-phase.is-active .gx-mc-dur {
+  color: #2563eb;
+}
+.gx-mc-phase.is-failed {
+  background: rgba(239, 68, 68, 0.05);
+  border-left-color: #ef4444;
+}
+.gx-mc-phase.is-failed .gx-mc-label {
+  color: #dc2626;
+}
+.gx-mc-phase.is-skipped .gx-mc-label {
+  text-decoration: line-through;
+  text-decoration-color: rgba(156, 163, 175, 0.7);
+}
+
+/* «Радарная» протяжка по активной фазе. */
+@keyframes gx-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(430%);
+  }
+}
+.gx-mc-phase.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 26%;
+  background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.14), transparent);
+  animation: gx-sweep 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .gx-mc-phase {
+    grid-template-columns: 24px 18px minmax(0, 1fr) 56px;
+  }
+  .gx-mc-detail,
+  .gx-mc-tplus {
+    display: none;
+  }
+}
+
+/* Пульсирующий синий маяк «идёт выполнение». */
+@keyframes gx-beacon-blue {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0);
+  }
+}
+.gx-beacon-blue {
+  animation: gx-beacon-blue 2s ease-in-out infinite;
+}
+
+/* HUD-уголки для панели вердикта. */
+.gx-brackets::before,
+.gx-brackets::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(37, 99, 235, 0.55);
+  border-style: solid;
+  pointer-events: none;
+}
+.gx-brackets::before {
+  top: 10px;
+  left: 10px;
+  border-width: 2px 0 0 2px;
+}
+.gx-brackets::after {
+  bottom: 10px;
+  right: 10px;
+  border-width: 0 2px 2px 0;
+}
+
+/* ===== Controls ===== */
+
+@keyframes gx-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gx-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid rgba(37, 99, 235, 0.28);
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: gx-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Live status beacon — pulsing emerald dot for "system online". */
+@keyframes gx-beacon {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+  50% { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+}
+.gx-beacon {
+  animation: gx-beacon 2.4s ease-in-out infinite;
+}
+
+/* Primary action button — solid spec blue. */
+.gx-btn-primary {
+  background: #2563eb;
+  border-color: rgba(147, 197, 253, 0.35);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.28);
+}
+.gx-btn-primary:hover {
+  background: #1d4ed8;
+}
+.gx-btn-primary:active {
+  background: #1e40af;
+}
+
+/* ===== Verdict semantics (light card surfaces) ===== */
+.gx-v-verified { color: #047857; }
+.gx-v-likely-true { color: #059669; }
+.gx-v-partially-true { color: #b45309; }
+.gx-v-misleading { color: #c2410c; }
+.gx-v-likely-false { color: #dc2626; }
+.gx-v-false { color: #b91c1c; }
+.gx-v-insufficient { color: #6b7280; }
+
+/* Контраст усилен для проектора: v-false / insufficient / misleading — «бьют» сильнее. */
+.gx-bg-v-verified { background: rgba(16, 185, 129, 0.14); border-color: rgba(4, 120, 87, 0.55); }
+.gx-bg-v-likely-true { background: rgba(16, 185, 129, 0.12); border-color: rgba(5, 150, 105, 0.50); }
+.gx-bg-v-partially-true { background: rgba(245, 158, 11, 0.14); border-color: rgba(180, 83, 9, 0.55); }
+.gx-bg-v-misleading { background: rgba(234, 88, 12, 0.18); border-color: rgba(154, 52, 18, 0.65); }
+.gx-bg-v-likely-false { background: rgba(239, 68, 68, 0.14); border-color: rgba(220, 38, 38, 0.55); }
+.gx-bg-v-false { background: rgba(220, 38, 38, 0.20); border-color: rgba(153, 27, 27, 0.75); }
+.gx-bg-v-insufficient { background: rgba(107, 114, 128, 0.18); border-color: rgba(55, 65, 81, 0.65); }
+
+/* Усиленная кромка Hero для красного/серого — левая акцентная полоса. */
+.gx-hero-edge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+.gx-hero-edge-false { background: #b91c1c; }
+.gx-hero-edge-likely-false { background: #dc2626; }
+.gx-hero-edge-misleading { background: #c2410c; }
+.gx-hero-edge-insufficient { background: #4b5563; }
+.gx-hero-edge-partially-true { background: #b45309; }
+.gx-hero-edge-likely-true { background: #059669; }
+.gx-hero-edge-verified { background: #047857; }
+
+/* ===== Scrollbars ===== */
+.gx-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+.gx-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.gx-scroll::-webkit-scrollbar-track { background: transparent; }
+.gx-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.45);
+  border-radius: 4px;
+}
+.gx-scroll::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.7); }
+
+/* Scrollbar for light surfaces. */
+.gx-scroll-light {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 13, 16, 0.28) transparent;
+}
+.gx-scroll-light::-webkit-scrollbar { width: 8px; height: 8px; }
+.gx-scroll-light::-webkit-scrollbar-track { background: transparent; }
+.gx-scroll-light::-webkit-scrollbar-thumb {
+  background: rgba(11, 13, 16, 0.25);
+  border-radius: 4px;
+}
+.gx-scroll-light::-webkit-scrollbar-thumb:hover { background: rgba(11, 13, 16, 0.45); }
